@@ -11,11 +11,10 @@ public class BankResponse {
 
     private String responseCode;
     private String responseMessage;
-    private AccountInfo accountInfo;
-    private Object data;
+    private AccountInfo accountInfo;  // Info about the affected account
+    private Object data;              // Any extra payload (transactions, lists, etc.)
 
-    // Static helpers to build responses
-
+    // ✅ Success with Account Info
     public static BankResponse success(String message, AccountInfo accountInfo) {
         return BankResponse.builder()
                 .responseCode("200")
@@ -23,14 +22,17 @@ public class BankResponse {
                 .accountInfo(accountInfo)
                 .build();
     }
-    public static BankResponse success(String message, Object Data) {
+
+    // ✅ Success with custom data
+    public static BankResponse success(String message, Object data) {
         return BankResponse.builder()
                 .responseCode("200")
                 .responseMessage(message)
-                .data(Data)
+                .data(data)
                 .build();
     }
 
+    // ✅ Created
     public static BankResponse created(String message, AccountInfo accountInfo) {
         return BankResponse.builder()
                 .responseCode("201")
@@ -39,6 +41,7 @@ public class BankResponse {
                 .build();
     }
 
+    // ✅ Conflict
     public static BankResponse conflict(String message) {
         return BankResponse.builder()
                 .responseCode("409")
@@ -46,6 +49,7 @@ public class BankResponse {
                 .build();
     }
 
+    // ✅ Unauthorized
     public static BankResponse unauthorized(String message) {
         return BankResponse.builder()
                 .responseCode("401")
@@ -53,6 +57,7 @@ public class BankResponse {
                 .build();
     }
 
+    // ✅ Not Found
     public static BankResponse notFound(String message) {
         return BankResponse.builder()
                 .responseCode("404")

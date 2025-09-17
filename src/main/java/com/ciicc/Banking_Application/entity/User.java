@@ -1,65 +1,59 @@
 package com.ciicc.Banking_Application.entity;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-
+import jakarta.persistence.*;
+import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
-import jakarta.persistence.*;
-import lombok.*;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 
-@Setter
+@Entity
 @Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Entity
 @Builder
-@Table(name = "users") // maps this class to the "users" table
+@Table(name = "users")
 public class User {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY) // auto-increment primary key
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Basic personal info
+    // Personal Info
     private String firstName;
     private String lastName;
     private String middleName;
     private String gender;
     private LocalDate dateOfBirth;
 
-    // Contact details
-    private String address; // expand later with the address API from JSON
-    private String email;
-    private String password; // should be stored as a hashed value
-
+    // Contact
+    @Column(unique = true, nullable = false)
     private String phoneNumber;
-    private String alternativePhoneNumber;
 
-    // Account information
-    @Column(unique = true, nullable = false) // must be unique per user
+    @Column(unique = true, nullable = false)
+    private String email;
+
+    private String address;
+    private String password;
+
+    // Account Number for savings
+    @Column(unique = true, nullable = false)
     private String accountNumber;
 
-    private BigDecimal accountBalance; // using BigDecimal for money accuracy
-
-    private String accountType;
-    private String currency;
-
-    // Security and authentication
-    private String role;  // e.g., "CUSTOMER", "ADMIN"
-    private String status; // e.g., "ACTIVE", "LOCKED", "SUSPENDED"
+    // Security
+    private String role = "CUSTOMER";
+    private String status = "ACTIVE";
     private int failedLoginAttempts;
     private LocalDateTime lastLoginAt;
-    private boolean twoFactorEnabled; // true if user has 2FA enabled
+    private boolean twoFactorEnabled;
 
-    // Audit trail
+    // Audit
     @CreationTimestamp
     private LocalDateTime createdAt;
-
     @UpdateTimestamp
     private LocalDateTime updatedAt;
-
     private LocalDateTime deletedAt;
+
 }

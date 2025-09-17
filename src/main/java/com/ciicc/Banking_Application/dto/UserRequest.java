@@ -28,16 +28,18 @@ public class UserRequest {
     private String alternativePhoneNumber;
 
     // Security
-    private String password;   // 🔹 now included for registration
+    private String password;
 
-    // Account information (system-generated mostly, but kept here for flexibility)
-    private String accountNumber;
-    private BigDecimal accountBalance;
-    private String accountType;
-    private String currency;
+    // Account information
+    private String accountNumber;       // Savings / Bank account number
+    private BigDecimal walletBalance = BigDecimal.ZERO;   // Wallet (phone-to-phone) balance
+    private BigDecimal savingsBalance = BigDecimal.ZERO;  // Savings / bank balance
+    private String accountType = "SAVINGS";
+    private String currency = "PHP";
 
-    private String role;
-    private String status;
+    // Roles & status
+    private String role = "CUSTOMER";   // CUSTOMER / ADMIN
+    private String status = "ACTIVE";   // ACTIVE / LOCKED / SUSPENDED
     private boolean twoFactorEnabled;
 
     // Audit trail

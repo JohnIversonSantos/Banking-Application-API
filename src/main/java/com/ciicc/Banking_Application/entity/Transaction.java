@@ -1,29 +1,59 @@
 package com.ciicc.Banking_Application.entity;
 
+import jakarta.persistence.*;
+import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-
-import lombok.*;
-import jakarta.persistence.*;
+import com.ciicc.Banking_Application.dto.TransactionHistory;
 
 @Entity
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Table (name = "transaction")
+@Table(name = "transactions")
 public class Transaction {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY) // Auto-increment
-    private Long transactionId;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-    private String accountNumber;
-    private String phoneNumber;
-    private String type;            
+    @ManyToOne
+    @JoinColumn(name = "savings_account_id", nullable = true)
+    private SavingsAccount savingsAccount;
+
+    @ManyToOne
+    @JoinColumn(name = "wallet_id", nullable = true)
+    private Wallet wallet;
+
+    @Enumerated(EnumType.STRING)
+    private TransactionType type;
+
     private BigDecimal amount;
-    private String description;
-    private LocalDateTime timestamp;
-    private String targetAccountNumber;
-}
 
+    private BigDecimal fee = BigDecimal.ZERO;
+
+    private String description;
+
+    private String targetAccountNumber;
+
+    @CreationTimestamp
+    private LocalDateTime timestamp;
+
+    @Column(nullable = false)
+    private String status;
+
+    // ---------------- Safe DTO Method ----------------
+    public TransactionHistory toSafeHistory() {
+        return new TransactionHistory(
+                this.type,
+                this.amount,
+                this.fee,
+                this.description,
+                this.targetAccountNumber,
+                this.timestamp,
+                this.status
+        );
+    }
+}

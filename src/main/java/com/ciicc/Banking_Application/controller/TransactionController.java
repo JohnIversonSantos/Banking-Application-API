@@ -1,46 +1,81 @@
 package com.ciicc.Banking_Application.controller;
 
-import java.math.BigDecimal;
-
-import com.ciicc.Banking_Application.service.impl.TransactionService;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-
 import com.ciicc.Banking_Application.dto.BankResponse;
+import com.ciicc.Banking_Application.dto.TransactionRequest;
+import com.ciicc.Banking_Application.service.impl.TransactionService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.*;
 
-import lombok.*;
-
+@CrossOrigin(origins = "http://localhost:5173")
 @RestController
-@RequestMapping("/api/transactions")
 @RequiredArgsConstructor
+@RequestMapping("/api/transactions")
 public class TransactionController {
 
     private final TransactionService transactionService;
 
-    @PostMapping("/deposit")
-    public BankResponse deposit(@RequestParam String accountNumber, @RequestParam BigDecimal amount) {
-        return this.transactionService.deposit(accountNumber, amount);
+    /** -------------------- WALLET -------------------- **/
+
+    @PostMapping("/wallet/deposit")
+    public BankResponse depositToWallet(@RequestBody TransactionRequest request) {
+        return transactionService.depositToWallet(request.getPhoneNumber(), request.getAmount());
     }
 
-    @PostMapping("/withdraw")
-    public BankResponse withdraw(@RequestParam String accountNumber, @RequestParam BigDecimal amount) {
-        return this.transactionService.withdraw(accountNumber, amount);
+    @PostMapping("/wallet/transfer")
+    public BankResponse transferBetweenWallets(@RequestBody TransactionRequest request) {
+        return transactionService.transferBetweenWallets(
+                request.getFromPhone(),
+                request.getToPhone(),
+                request.getAmount()
+        );
     }
 
-    @PostMapping("/transfer")
-    public BankResponse transfer(@RequestParam String fromAccount,
-                                 @RequestParam String toAccount,
-                                 @RequestParam BigDecimal amount) {
-        return this.transactionService.transfer(fromAccount, toAccount, amount);
+    @PostMapping("/wallet/transfer-to-bank")
+    public BankResponse transferWalletToSavings(@RequestBody TransactionRequest request) {
+        return transactionService.transferWalletToSavings(
+                request.getFromPhone(),
+                request.getToAccount(),
+                request.getAmount()
+        );
     }
 
-    // @GetMapping("/history/{accountNumber}")
-    // public BankResponse getHistory(@PathVariable String accountNumber) {
-    //     return this.transactionService.getTransactionHistory(accountNumber);
-    // }
+    @GetMapping("/wallet/history/{phoneNumber}")
+    public BankResponse walletTransactionHistory(@PathVariable String phoneNumber) {
+        return transactionService.getTransactionHistory(phoneNumber);
+    }
+
+    /** -------------------- SAVINGS -------------------- **/
+
+    @PostMapping("/savings/deposit")
+    public BankResponse depositToSavings(@RequestBody TransactionRequest request) {
+        return transactionService.depositToSavings(request.getAccountNumber(), request.getAmount());
+    }
+
+    @PostMapping("/savings/withdraw")
+    public BankResponse withdrawFromSavings(@RequestBody TransactionRequest request) {
+        return transactionService.withdrawFromSavings(request.getAccountNumber(), request.getAmount());
+    }
+
+    @PostMapping("/savings/transfer")
+    public BankResponse transferBetweenSavings(@RequestBody TransactionRequest request) {
+        return transactionService.transferBetweenSavings(
+                request.getFromAccount(),
+                request.getToAccount(),
+                request.getAmount()
+        );
+    }
+
+    @PostMapping("/savings/transfer-to-wallet")
+    public BankResponse transferSavingsToWallet(@RequestBody TransactionRequest request) {
+        return transactionService.transferSavingsToWallet(
+                request.getFromAccount(),
+                request.getToPhone(),
+                request.getAmount()
+        );
+    }
+
+    @GetMapping("/savings/history/{accountNumber}")
+    public BankResponse savingsTransactionHistory(@PathVariable String accountNumber) {
+        return transactionService.getTransactionHistory(accountNumber);
+    }
 }
-
