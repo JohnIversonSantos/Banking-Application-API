@@ -1,18 +1,19 @@
 package com.ciicc.Banking_Application.dto;
 
-import lombok.*;
-import java.util.List;
+import lombok.Builder;
+import lombok.Data;
 
-@Setter
-@Getter
-@NoArgsConstructor
-@AllArgsConstructor
+@Data
 @Builder
 public class LoginResponse {
-    private String userId;
-    private String fullName;
+    private Long id;
+    private String firstName;
+    private String lastName;
+    private String middleName;
     private String email;
     private String phoneNumber;
-    private List<AccountInfo> accounts; // wallet + savings
-    private String token;               // JWT or session token
+    private String accountNumber;
+    private String role;
+    private String status;
+    private String token;
 }

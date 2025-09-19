@@ -32,6 +32,16 @@ public class BankResponse {
                 .build();
     }
 
+    // ✅ Success with Account Info + Data
+    public static BankResponse success(String message, AccountInfo accountInfo, Object data) {
+        return BankResponse.builder()
+                .responseCode("200")
+                .responseMessage(message)
+                .accountInfo(accountInfo)
+                .data(data)
+                .build();
+    }
+
     // ✅ Created
     public static BankResponse created(String message, AccountInfo accountInfo) {
         return BankResponse.builder()
