@@ -86,7 +86,6 @@ public class UserServiceImpl implements UserService {
     /** -------------------- Login -------------------- **/
     @Override
     public BankResponse login(LoginRequest request) {
-        // Find user by email or phone
         Optional<User> userOpt = userRepository.findByEmail(request.getIdentifier());
         if (userOpt.isEmpty()) {
             userOpt = userRepository.findByPhoneNumber(request.getIdentifier());
@@ -98,7 +97,6 @@ public class UserServiceImpl implements UserService {
 
         User user = userOpt.get();
 
-        // Check password
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             return BankResponse.unauthorized("Invalid credentials!");
         }
@@ -106,31 +104,19 @@ public class UserServiceImpl implements UserService {
         // Generate JWT token
         String token = jwtUtil.generateToken(user.getEmail());
 
-        // Get savings account, ensure currency and balance are not null
-        SavingsAccount savings = savingsRepository.findByAccountNumber(user.getAccountNumber())
-                .orElse(SavingsAccount.builder()
-                        .user(user)
-                        .accountNumber(user.getAccountNumber())
-                        .balance(BigDecimal.ZERO)
-                        .currency("PHP")
-                        .build());
-
         // Audit log
         logAudit("LOGIN_SUCCESS", user.getEmail(), "User logged in");
 
-        // Build AccountInfo safely
-        AccountInfo accountInfo = AccountInfo.builder()
-                .accountNumber(user.getAccountNumber())
-                .phoneNumber(user.getPhoneNumber())
-                .accountBalance(savings.getBalance() != null ? savings.getBalance() : BigDecimal.ZERO)
-                .accountType("SAVINGS")
-                .currency(savings.getCurrency() != null ? savings.getCurrency() : "PHP")
-                .status(user.getStatus() != null ? user.getStatus() : "ACTIVE")
+        // Build minimal login response
+        LoginResponse loginResponse = LoginResponse.builder()
+                .id(user.getId())
+                .email(user.getEmail())
+                .token(token)
                 .build();
 
-        // Return login info
-        return BankResponse.success("Login successful!", accountInfo);
+        return BankResponse.success("Login successful!", loginResponse);
     }
+
 
     /** -------------------- Users Retrieval -------------------- **/
     @Override
@@ -178,6 +164,49 @@ public class UserServiceImpl implements UserService {
             userOpt = userRepository.findByPhoneNumber(identifier);
         }
         return userOpt;
+    }
+
+    /** -------------------- Get Current User -------------------- **/
+    @Override
+    public BankResponse getCurrentUser(String email) {
+        Optional<User> userOpt = userRepository.findByEmail(email);
+        if (userOpt.isEmpty()) {
+            return BankResponse.notFound("User not found");
+        }
+
+        User user = userOpt.get();
+
+        // Get wallet and savings balances
+        Optional<Wallet> walletOpt = walletRepository.findByUserPhoneNumber(user.getPhoneNumber());
+        Optional<SavingsAccount> savingsOpt = savingsRepository.findByAccountNumber(user.getAccountNumber());
+
+        BigDecimal walletBalance = walletOpt.map(Wallet::getBalance).orElse(BigDecimal.ZERO);
+        BigDecimal savingsBalance = savingsOpt.map(SavingsAccount::getBalance).orElse(BigDecimal.ZERO);
+
+        // Build full user response with all the data
+        UserResponse userResponse = UserResponse.builder()
+                .id(user.getId())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .middleName(user.getMiddleName())
+                .gender(user.getGender())
+                .dateOfBirth(user.getDateOfBirth())        // Direct assignment
+                .address(user.getAddress())
+                .email(user.getEmail())
+                .phoneNumber(user.getPhoneNumber())
+                .accountNumber(user.getAccountNumber())
+                .walletBalance(walletBalance)
+                .savingsBalance(savingsBalance)
+                .role(user.getRole())
+                .status(user.getStatus())
+                .createdAt(user.getCreatedAt())            // Direct assignment
+                .updatedAt(user.getUpdatedAt())            // Direct assignment
+                .build();
+
+        // Audit log
+        logAudit("GET_CURRENT_USER", user.getEmail(), "User profile retrieved");
+
+        return BankResponse.success("User retrieved successfully", userResponse);
     }
 
     /** -------------------- Audit Logging -------------------- **/

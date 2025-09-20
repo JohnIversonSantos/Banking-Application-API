@@ -23,7 +23,7 @@ public class SavingsInterestScheduler {
     private final AuditLogRepository auditLogRepository;
 
     // Runs every 5 minutes for testing
-    @Scheduled(fixedRate = 5 * 60 * 1000)
+    @Scheduled(fixedRate = 20 * 60 * 1000)
     @Transactional
     public void applyInterest() {
         List<SavingsAccount> accounts = savingsRepository.findAll();

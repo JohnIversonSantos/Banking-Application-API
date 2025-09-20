@@ -6,7 +6,12 @@ import com.ciicc.Banking_Application.service.impl.TransactionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(
+        origins = "http://localhost:5173",
+        allowedHeaders = "*",
+        exposedHeaders = "*",
+        allowCredentials = "true"
+)
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/transactions")

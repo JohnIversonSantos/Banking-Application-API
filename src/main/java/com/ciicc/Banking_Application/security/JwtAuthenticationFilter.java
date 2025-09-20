@@ -27,15 +27,29 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String path = request.getServletPath();
 
-        // Skip filter for open endpoints
-        if (path.startsWith("/api/users/register") || path.startsWith("/api/auth/login") || path.startsWith("/api/users/all")) {
+        // ------------------------
+        // 1️⃣ Skip filter for open endpoints
+        // ------------------------
+        if (path.startsWith("/api/users/register") ||
+                path.startsWith("/api/auth/login") ||
+                path.startsWith("/api/users/all")) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        String authHeader = request.getHeader("Authorization");
+        // ------------------------
+        // 2️⃣ Allow preflight OPTIONS requests to pass
+        // ------------------------
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            response.setStatus(HttpServletResponse.SC_OK); // Respond 200 for preflight
+            filterChain.doFilter(request, response);
+            return;
+        }
 
-        // ✅ If missing or malformed, immediately return 401
+        // ------------------------
+        // 3️⃣ Check Authorization header
+        // ------------------------
+        String authHeader = request.getHeader("Authorization");
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.getWriter().write("Missing or invalid Authorization header");
@@ -48,12 +62,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             email = jwtUtil.extractEmail(token);
         } catch (Exception e) {
-            // ✅ Catch any exception from JWT parsing (expired, malformed)
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.getWriter().write("Invalid or expired token");
             return;
         }
 
+        // ------------------------
+        // 4️⃣ Set authentication in SecurityContext if valid
+        // ------------------------
         if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             try {
                 var userDetails = userDetailsService.loadUserByUsername(email);
@@ -80,6 +96,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
         }
 
+        // ------------------------
+        // 5️⃣ Continue filter chain
+        // ------------------------
         filterChain.doFilter(request, response);
     }
 }

@@ -74,4 +74,20 @@ public class BankResponse {
                 .responseMessage(message)
                 .build();
     }
+
+    // ✅ Internal Server Error (Add this method)
+    public static BankResponse error(String message) {
+        return BankResponse.builder()
+                .responseCode("500")
+                .responseMessage(message)
+                .build();
+    }
+
+    // ✅ Bad Request
+    public static BankResponse badRequest(String message) {
+        return BankResponse.builder()
+                .responseCode("400")
+                .responseMessage(message)
+                .build();
+    }
 }

@@ -23,5 +23,7 @@ public interface UserService {
 
     Optional<User> findByIdentifier(String identifier);
 
+    BankResponse getCurrentUser(String email);
+
 
 }
