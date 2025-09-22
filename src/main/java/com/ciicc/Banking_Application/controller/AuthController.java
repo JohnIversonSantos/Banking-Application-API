@@ -15,7 +15,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 @CrossOrigin(
-        origins = "http://localhost:5173",
+        origins = {"http://localhost:5173, http://localhost:5173"},
         allowedHeaders = "*",
         exposedHeaders = "*",
         allowCredentials = "true"
@@ -72,4 +72,5 @@ public class AuthController {
                     .body(BankResponse.unauthorized("Invalid email or password"));
         }
     }
+
 }

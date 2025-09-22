@@ -21,6 +21,8 @@ public interface UserService {
 
     Optional<User> getUserByEmail(String email);
 
+    Optional<User> getUserByPhoneNumber(String phoneNumber);
+
     Optional<User> findByIdentifier(String identifier);
 
     BankResponse getCurrentUser(String email);

@@ -1,6 +1,7 @@
 package com.ciicc.Banking_Application.service.impl;
 
 import com.ciicc.Banking_Application.dto.BankResponse;
+import com.ciicc.Banking_Application.dto.TransactionHistory;
 import com.ciicc.Banking_Application.entity.*;
 import com.ciicc.Banking_Application.repository.*;
 import lombok.RequiredArgsConstructor;
@@ -8,6 +9,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -71,10 +74,11 @@ public class TransactionServiceImpl implements TransactionService {
         savingsRepository.save(sender);
         savingsRepository.save(receiver);
 
+        // Bank-to-bank transfer (directional)
         recordSavingsTransaction(sender, TransactionType.TRANSFER_OUT, amount, fee,
-                "Bank to bank transfer", receiver.getAccountNumber());
+                "Sent money to another bank account", receiver.getAccountNumber());
         recordSavingsTransaction(receiver, TransactionType.TRANSFER_IN, amount, BigDecimal.ZERO,
-                "Bank received transfer", sender.getAccountNumber());
+                "Received money from another bank account", sender.getAccountNumber());
 
         return BankResponse.success("Bank transfer successful (fee applied)", sender.getBalance());
     }
@@ -111,10 +115,11 @@ public class TransactionServiceImpl implements TransactionService {
         walletRepository.save(sender);
         walletRepository.save(receiver);
 
-        recordWalletTransaction(sender, TransactionType.TRANSFER_WALLET, amount, BigDecimal.ZERO,
-                "Wallet to wallet transfer", receiver.getUser().getPhoneNumber());
-        recordWalletTransaction(receiver, TransactionType.TRANSFER_WALLET, amount, BigDecimal.ZERO,
-                "Wallet received from wallet transfer", sender.getUser().getPhoneNumber());
+        // Wallet-to-wallet transfer (directional)
+        recordWalletTransaction(sender, TransactionType.TRANSFER_OUT, amount, BigDecimal.ZERO,
+                "Sent money to wallet", receiver.getUser().getPhoneNumber());
+        recordWalletTransaction(receiver, TransactionType.TRANSFER_IN, amount, BigDecimal.ZERO,
+                "Received money from wallet", sender.getUser().getPhoneNumber());
 
         return BankResponse.success("Wallet transfer successful", sender.getBalance());
     }
@@ -137,6 +142,7 @@ public class TransactionServiceImpl implements TransactionService {
         walletRepository.save(wallet);
         savingsRepository.save(savings);
 
+        // Wallet → Savings
         recordWalletTransaction(wallet, TransactionType.TRANSFER_WALLET_TO_BANK, amount, BigDecimal.ZERO,
                 "Wallet to savings transfer", savings.getAccountNumber());
         recordSavingsTransaction(savings, TransactionType.TRANSFER_WALLET_TO_BANK, amount, BigDecimal.ZERO,
@@ -162,6 +168,7 @@ public class TransactionServiceImpl implements TransactionService {
         savingsRepository.save(savings);
         walletRepository.save(wallet);
 
+        // Savings → Wallet
         recordSavingsTransaction(savings, TransactionType.TRANSFER_BANK_TO_WALLET, amount, BigDecimal.ZERO,
                 "Savings to wallet transfer", wallet.getUser().getPhoneNumber());
         recordWalletTransaction(wallet, TransactionType.TRANSFER_BANK_TO_WALLET, amount, BigDecimal.ZERO,
@@ -187,7 +194,8 @@ public class TransactionServiceImpl implements TransactionService {
         // Savings account transactions
         var savingsOpt = savingsRepository.findByAccountNumber(identifier);
         if (savingsOpt.isPresent()) {
-            var transactions = transactionRepository.findBySavingsAccount_AccountNumberOrderByTimestampDesc(identifier)
+            var transactions = transactionRepository
+                    .findBySavingsAccount_AccountNumberOrderByTimestampDesc(identifier)
                     .stream()
                     .map(Transaction::toSafeHistory)
                     .toList();
@@ -195,6 +203,84 @@ public class TransactionServiceImpl implements TransactionService {
         }
 
         return BankResponse.notFound("No transactions found for the provided identifier");
+    }
+
+    @Override
+    public BankResponse getWalletTransactionHistory(String phoneNumber, boolean isSender) {
+        List<TransactionHistory> transactions = transactionRepository
+                .findByWallet_User_PhoneNumberOrderByTimestampDesc(phoneNumber)
+                .stream()
+                .filter(tx -> {
+                    if (isSender) {
+                        // Only show deposits and money sent
+                        return tx.getType() == TransactionType.DEPOSIT
+                                || tx.getType() == TransactionType.TRANSFER_OUT
+                                || tx.getType() == TransactionType.TRANSFER_WALLET_TO_BANK;
+                    } else {
+                        // Only show received money
+                        return tx.getType() == TransactionType.TRANSFER_IN
+                                || tx.getType() == TransactionType.TRANSFER_BANK_TO_WALLET
+                                || tx.getType() == TransactionType.TRANSFER_WALLET_TO_BANK;
+                    }
+                })
+                .map(tx -> new TransactionHistory(
+                        tx.getType(),
+                        tx.getAmount(),
+                        tx.getFee(),
+                        tx.getDescription(),
+                        tx.getTargetAccountNumber(),
+                        tx.getTimestamp(),
+                        tx.getStatus()
+                ))
+                .toList();
+
+        return BankResponse.success("Wallet transaction history retrieved", transactions);
+    }
+
+    @Override
+    public BankResponse getSavingsTransactionHistory(String accountNumber, boolean isSender) {
+        List<TransactionHistory> transactions = transactionRepository
+                .findBySavingsAccount_AccountNumberOrderByTimestampDesc(accountNumber)
+                .stream()
+                .filter(tx -> {
+                    if (isSender) {
+                        // Only show deposits and money sent
+                        return tx.getType() == TransactionType.DEPOSIT
+                                || tx.getType() == TransactionType.TRANSFER_OUT
+                                || tx.getType() == TransactionType.TRANSFER_BANK_TO_WALLET;
+                    } else {
+                        // Only show received money
+                        return tx.getType() == TransactionType.TRANSFER_IN
+                                || tx.getType() == TransactionType.TRANSFER_WALLET_TO_BANK;
+                    }
+                })
+                .map(tx -> {
+                    BigDecimal displayAmount = tx.getAmount();
+
+                    // Adjust sign from user's perspective
+                    if ((tx.getType() == TransactionType.TRANSFER_WALLET_TO_BANK && !isSender) ||  // receiving from wallet
+                            tx.getType() == TransactionType.TRANSFER_IN ||  // incoming transfer
+                            tx.getType() == TransactionType.DEPOSIT ||      // deposit
+                            tx.getType() == TransactionType.INTEREST ||     // interest earned
+                            (tx.getType() == TransactionType.TRANSFER_BANK_TO_WALLET && !isSender)) { // receiving from savings
+                        // positive amount
+                    } else {
+                        displayAmount = displayAmount.negate(); // negative amount
+                    }
+
+                    return new TransactionHistory(
+                            tx.getType(),
+                            displayAmount,  // adjusted sign
+                            tx.getFee(),
+                            tx.getDescription(),
+                            tx.getTargetAccountNumber(),
+                            tx.getTimestamp(),
+                            tx.getStatus()
+                    );
+                })
+                .toList();
+
+        return BankResponse.success("Savings transaction history retrieved", transactions);
     }
 
     /** -------------------- Helper Methods -------------------- **/

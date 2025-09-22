@@ -11,6 +11,8 @@ import com.ciicc.Banking_Application.repository.WalletAccountRepository;
 import com.ciicc.Banking_Application.security.JwtUtil;
 import com.ciicc.Banking_Application.service.impl.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -18,10 +20,11 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.servlet.http.HttpServletRequest;
 
 import java.math.BigDecimal;
+import java.util.Map;
 import java.util.Optional;
 
 @CrossOrigin(
-        origins = "http://localhost:5173",
+        origins = {"http://localhost:5173, http://localhost:5173"},
         allowedHeaders = "*",
         exposedHeaders = "*",
         allowCredentials = "true"
@@ -191,5 +194,25 @@ public class UserController {
             return authHeader.substring(7);
         }
         return null;
+    }
+
+    /** -------------------- Lookup API -------------------- **/
+    @GetMapping("/lookup")
+    public ResponseEntity<BankResponse> lookupUser(@RequestParam String phoneNumber) {
+        Optional<User> userOpt = userService.getUserByPhoneNumber(phoneNumber);
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(BankResponse.notFound("User not found"));
+        }
+
+        User user = userOpt.get();
+        // Return only the fields needed for the frontend
+        Map<String, Object> data = Map.of(
+                "firstName", user.getFirstName(),
+                "lastName", user.getLastName(),
+                "phoneNumber", user.getPhoneNumber()
+        );
+
+        return ResponseEntity.ok(BankResponse.success("User retrieved successfully", data));
     }
 }

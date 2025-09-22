@@ -1,7 +1,9 @@
 package com.ciicc.Banking_Application.service.impl;
 
 import com.ciicc.Banking_Application.dto.BankResponse;
+import com.ciicc.Banking_Application.entity.TransactionType;
 import java.math.BigDecimal;
+import java.util.List;
 
 public interface TransactionService {
 
@@ -28,4 +30,15 @@ public interface TransactionService {
      * The implementation will detect the type and return the appropriate transactions.
      */
     BankResponse getTransactionHistory(String identifier);
+
+    /** ------------------- FILTERED TRANSACTION HISTORY ------------------- */
+    /**
+     * Retrieves wallet transaction history filtered by types.
+     */
+    BankResponse getWalletTransactionHistory(String phoneNumber, boolean isSender);
+
+    /**
+     * Retrieves savings account transaction history filtered by types.
+     */
+    BankResponse getSavingsTransactionHistory(String accountNumber, boolean isSender);
 }
