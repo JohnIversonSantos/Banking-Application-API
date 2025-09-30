@@ -24,7 +24,7 @@ public class UserServiceImpl implements UserService {
     private final WalletAccountRepository walletRepository;
     private final AuditLogRepository auditLogRepository;
     private final JwtUtil jwtUtil;
-    private final BCryptPasswordEncoder passwordEncoder; // ✅ injected bean, no "new"
+    private final BCryptPasswordEncoder passwordEncoder;
 
     /** -------------------- Account Creation -------------------- **/
     @Override

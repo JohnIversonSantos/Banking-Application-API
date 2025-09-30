@@ -3,6 +3,11 @@ package com.ciicc.Banking_Application.repository;
 import com.ciicc.Banking_Application.entity.Transaction;
 import com.ciicc.Banking_Application.entity.TransactionType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface TransactionRepository extends JpaRepository<Transaction, Long> {
@@ -22,4 +27,16 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     List<Transaction> findBySavingsAccount_AccountNumberAndTypeInOrderByTimestampDesc(
             String accountNumber, List<TransactionType> types
     );
+
+    // Sum of Today's transfer for daily limit check
+//    @Query("SELECT COALESCE(SUM(t.amount), 0) " +
+//            "FROM Transaction t " +
+//            "WHERE t.savingsAccount.accountNumber = :accountNumber " +
+//            "AND t.timestamp BETWEEN :startOfDay AND :endOfDay " +
+//            "AND t.type = com.ciicc.Banking_Application.entity.TransactionType.TRANSFER_OUT")
+//    BigDecimal sumDailySavingsTransfers(
+//            @Param("accountNumber") String accountNumber,
+//            @Param("startOfDay") LocalDateTime startOfDay,
+//            @Param("endOfDay") LocalDateTime endOfDay
+//    );
 }

@@ -1,9 +1,7 @@
 package com.ciicc.Banking_Application.service.impl;
 
 import com.ciicc.Banking_Application.dto.BankResponse;
-import com.ciicc.Banking_Application.entity.TransactionType;
 import java.math.BigDecimal;
-import java.util.List;
 
 public interface TransactionService {
 

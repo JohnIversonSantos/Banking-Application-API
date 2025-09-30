@@ -10,7 +10,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -21,16 +20,20 @@ public class TransactionServiceImpl implements TransactionService {
     private final TransactionRepository transactionRepository;
     private final AuditLogRepository auditLogRepository;
 
+//    private static final BigDecimal PER_TRANSACTION_LIMIT = new BigDecimal("50000");
+//    private static final BigDecimal DAILY_LIMIT = new BigDecimal("100000");
+
+
     /** -------------------- Savings Account Methods -------------------- **/
     @Override
     public BankResponse depositToSavings(String accountNumber, BigDecimal amount) {
-        SavingsAccount account = savingsRepository.findByAccountNumber(accountNumber).orElse(null);
+        SavingsAccount account = this.savingsRepository.findByAccountNumber(accountNumber).orElse(null);
         if (account == null) return BankResponse.notFound("Savings account not found");
 
         account.setBalance(account.getBalance().add(amount));
-        savingsRepository.save(account);
+        this.savingsRepository.save(account);
 
-        recordSavingsTransaction(account, TransactionType.DEPOSIT, amount, BigDecimal.ZERO,
+        this.recordSavingsTransaction(account, TransactionType.DEPOSIT, amount, BigDecimal.ZERO,
                 "Deposit to savings", null);
 
         return BankResponse.success("Deposit successful", account.getBalance());
@@ -38,16 +41,16 @@ public class TransactionServiceImpl implements TransactionService {
 
     @Override
     public BankResponse withdrawFromSavings(String accountNumber, BigDecimal amount) {
-        SavingsAccount account = savingsRepository.findByAccountNumber(accountNumber).orElse(null);
+        SavingsAccount account = this.savingsRepository.findByAccountNumber(accountNumber).orElse(null);
         if (account == null) return BankResponse.notFound("Savings account not found");
 
         if (account.getBalance().compareTo(amount) < 0)
             return BankResponse.conflict("Insufficient funds");
 
         account.setBalance(account.getBalance().subtract(amount));
-        savingsRepository.save(account);
+        this.savingsRepository.save(account);
 
-        recordSavingsTransaction(account, TransactionType.WITHDRAWAL, amount, BigDecimal.ZERO,
+        this.recordSavingsTransaction(account, TransactionType.WITHDRAWAL, amount, BigDecimal.ZERO,
                 "Withdrawal from savings", null);
 
         return BankResponse.success("Withdrawal successful", account.getBalance());
@@ -56,8 +59,8 @@ public class TransactionServiceImpl implements TransactionService {
     @Override
     @Transactional
     public BankResponse transferBetweenSavings(String fromAccount, String toAccount, BigDecimal amount) {
-        SavingsAccount sender = savingsRepository.findByAccountNumber(fromAccount).orElse(null);
-        SavingsAccount receiver = savingsRepository.findByAccountNumber(toAccount).orElse(null);
+        SavingsAccount sender = this.savingsRepository.findByAccountNumber(fromAccount).orElse(null);
+        SavingsAccount receiver = this.savingsRepository.findByAccountNumber(toAccount).orElse(null);
 
         if (sender == null || receiver == null)
             return BankResponse.notFound("One or both accounts not found");
@@ -71,13 +74,13 @@ public class TransactionServiceImpl implements TransactionService {
         sender.setBalance(sender.getBalance().subtract(totalDeduct));
         receiver.setBalance(receiver.getBalance().add(amount));
 
-        savingsRepository.save(sender);
-        savingsRepository.save(receiver);
+        this.savingsRepository.save(sender);
+        this.savingsRepository.save(receiver);
 
         // Bank-to-bank transfer (directional)
-        recordSavingsTransaction(sender, TransactionType.TRANSFER_OUT, amount, fee,
+        this.recordSavingsTransaction(sender, TransactionType.TRANSFER_OUT, amount, fee,
                 "Sent money to another bank account", receiver.getAccountNumber());
-        recordSavingsTransaction(receiver, TransactionType.TRANSFER_IN, amount, BigDecimal.ZERO,
+        this.recordSavingsTransaction(receiver, TransactionType.TRANSFER_IN, amount, BigDecimal.ZERO,
                 "Received money from another bank account", sender.getAccountNumber());
 
         return BankResponse.success("Bank transfer successful (fee applied)", sender.getBalance());
@@ -86,13 +89,13 @@ public class TransactionServiceImpl implements TransactionService {
     /** -------------------- Wallet Methods -------------------- **/
     @Override
     public BankResponse depositToWallet(String phoneNumber, BigDecimal amount) {
-        Wallet wallet = walletRepository.findByUserPhoneNumber(phoneNumber).orElse(null);
+        Wallet wallet = this.walletRepository.findByUserPhoneNumber(phoneNumber).orElse(null);
         if (wallet == null) return BankResponse.notFound("Wallet not found");
 
         wallet.setBalance(wallet.getBalance().add(amount));
-        walletRepository.save(wallet);
+        this.walletRepository.save(wallet);
 
-        recordWalletTransaction(wallet, TransactionType.DEPOSIT, amount, BigDecimal.ZERO,
+        this.recordWalletTransaction(wallet, TransactionType.DEPOSIT, amount, BigDecimal.ZERO,
                 "Wallet deposit", null);
 
         return BankResponse.success("Wallet deposit successful", wallet.getBalance());
@@ -101,8 +104,8 @@ public class TransactionServiceImpl implements TransactionService {
     @Override
     @Transactional
     public BankResponse transferBetweenWallets(String fromPhone, String toPhone, BigDecimal amount) {
-        Wallet sender = walletRepository.findByUserPhoneNumber(fromPhone).orElse(null);
-        Wallet receiver = walletRepository.findByUserPhoneNumber(toPhone).orElse(null);
+        Wallet sender = this.walletRepository.findByUserPhoneNumber(fromPhone).orElse(null);
+        Wallet receiver = this.walletRepository.findByUserPhoneNumber(toPhone).orElse(null);
 
         if (sender == null || receiver == null)
             return BankResponse.notFound("One or both wallets not found");
@@ -112,13 +115,13 @@ public class TransactionServiceImpl implements TransactionService {
         sender.setBalance(sender.getBalance().subtract(amount));
         receiver.setBalance(receiver.getBalance().add(amount));
 
-        walletRepository.save(sender);
-        walletRepository.save(receiver);
+        this.walletRepository.save(sender);
+        this.walletRepository.save(receiver);
 
         // Wallet-to-wallet transfer (directional)
-        recordWalletTransaction(sender, TransactionType.TRANSFER_OUT, amount, BigDecimal.ZERO,
+        this.recordWalletTransaction(sender, TransactionType.TRANSFER_OUT, amount, BigDecimal.ZERO,
                 "Sent money to wallet", receiver.getUser().getPhoneNumber());
-        recordWalletTransaction(receiver, TransactionType.TRANSFER_IN, amount, BigDecimal.ZERO,
+        this.recordWalletTransaction(receiver, TransactionType.TRANSFER_IN, amount, BigDecimal.ZERO,
                 "Received money from wallet", sender.getUser().getPhoneNumber());
 
         return BankResponse.success("Wallet transfer successful", sender.getBalance());
@@ -128,8 +131,8 @@ public class TransactionServiceImpl implements TransactionService {
     @Override
     @Transactional
     public BankResponse transferWalletToSavings(String fromPhone, String toAccount, BigDecimal amount) {
-        Wallet wallet = walletRepository.findByUserPhoneNumber(fromPhone).orElse(null);
-        SavingsAccount savings = savingsRepository.findByAccountNumber(toAccount).orElse(null);
+        Wallet wallet = this.walletRepository.findByUserPhoneNumber(fromPhone).orElse(null);
+        SavingsAccount savings = this.savingsRepository.findByAccountNumber(toAccount).orElse(null);
 
         if (wallet == null || savings == null)
             return BankResponse.notFound("Wallet or Savings account not found");
@@ -139,13 +142,13 @@ public class TransactionServiceImpl implements TransactionService {
         wallet.setBalance(wallet.getBalance().subtract(amount));
         savings.setBalance(savings.getBalance().add(amount));
 
-        walletRepository.save(wallet);
-        savingsRepository.save(savings);
+        this.walletRepository.save(wallet);
+        this.savingsRepository.save(savings);
 
         // Wallet → Savings
-        recordWalletTransaction(wallet, TransactionType.TRANSFER_WALLET_TO_BANK, amount, BigDecimal.ZERO,
+        this.recordWalletTransaction(wallet, TransactionType.TRANSFER_WALLET_TO_BANK, amount, BigDecimal.ZERO,
                 "Wallet to savings transfer", savings.getAccountNumber());
-        recordSavingsTransaction(savings, TransactionType.TRANSFER_WALLET_TO_BANK, amount, BigDecimal.ZERO,
+        this.recordSavingsTransaction(savings, TransactionType.TRANSFER_WALLET_TO_BANK, amount, BigDecimal.ZERO,
                 "Received from wallet transfer", wallet.getUser().getPhoneNumber());
 
         return BankResponse.success("Transfer from wallet to savings successful", wallet.getBalance());
@@ -154,8 +157,8 @@ public class TransactionServiceImpl implements TransactionService {
     @Override
     @Transactional
     public BankResponse transferSavingsToWallet(String fromAccount, String toPhone, BigDecimal amount) {
-        SavingsAccount savings = savingsRepository.findByAccountNumber(fromAccount).orElse(null);
-        Wallet wallet = walletRepository.findByUserPhoneNumber(toPhone).orElse(null);
+        SavingsAccount savings = this.savingsRepository.findByAccountNumber(fromAccount).orElse(null);
+        Wallet wallet = this.walletRepository.findByUserPhoneNumber(toPhone).orElse(null);
 
         if (savings == null || wallet == null)
             return BankResponse.notFound("Savings or Wallet not found");
@@ -165,13 +168,13 @@ public class TransactionServiceImpl implements TransactionService {
         savings.setBalance(savings.getBalance().subtract(amount));
         wallet.setBalance(wallet.getBalance().add(amount));
 
-        savingsRepository.save(savings);
-        walletRepository.save(wallet);
+        this.savingsRepository.save(savings);
+        this.walletRepository.save(wallet);
 
         // Savings → Wallet
-        recordSavingsTransaction(savings, TransactionType.TRANSFER_BANK_TO_WALLET, amount, BigDecimal.ZERO,
+        this.recordSavingsTransaction(savings, TransactionType.TRANSFER_BANK_TO_WALLET, amount, BigDecimal.ZERO,
                 "Savings to wallet transfer", wallet.getUser().getPhoneNumber());
-        recordWalletTransaction(wallet, TransactionType.TRANSFER_BANK_TO_WALLET, amount, BigDecimal.ZERO,
+        this.recordWalletTransaction(wallet, TransactionType.TRANSFER_BANK_TO_WALLET, amount, BigDecimal.ZERO,
                 "Received from savings transfer", savings.getUser().getAccountNumber());
 
         return BankResponse.success("Transfer from savings to wallet successful", savings.getBalance());
@@ -181,9 +184,9 @@ public class TransactionServiceImpl implements TransactionService {
     @Override
     public BankResponse getTransactionHistory(String identifier) {
         // Wallet transactions
-        var walletOpt = walletRepository.findByUserPhoneNumber(identifier);
+        var walletOpt = this.walletRepository.findByUserPhoneNumber(identifier);
         if (walletOpt.isPresent()) {
-            var transactions = transactionRepository
+            var transactions = this.transactionRepository
                     .findByWallet_User_PhoneNumberOrderByTimestampDesc(identifier)
                     .stream()
                     .map(Transaction::toSafeHistory)
@@ -192,9 +195,9 @@ public class TransactionServiceImpl implements TransactionService {
         }
 
         // Savings account transactions
-        var savingsOpt = savingsRepository.findByAccountNumber(identifier);
+        var savingsOpt = this.savingsRepository.findByAccountNumber(identifier);
         if (savingsOpt.isPresent()) {
-            var transactions = transactionRepository
+            var transactions = this.transactionRepository
                     .findBySavingsAccount_AccountNumberOrderByTimestampDesc(identifier)
                     .stream()
                     .map(Transaction::toSafeHistory)
@@ -207,7 +210,7 @@ public class TransactionServiceImpl implements TransactionService {
 
     @Override
     public BankResponse getWalletTransactionHistory(String phoneNumber, boolean isSender) {
-        List<TransactionHistory> transactions = transactionRepository
+        List<TransactionHistory> transactions = this.transactionRepository
                 .findByWallet_User_PhoneNumberOrderByTimestampDesc(phoneNumber)
                 .stream()
                 .filter(tx -> {
@@ -239,7 +242,7 @@ public class TransactionServiceImpl implements TransactionService {
 
     @Override
     public BankResponse getSavingsTransactionHistory(String accountNumber, boolean isSender) {
-        List<TransactionHistory> transactions = transactionRepository
+        List<TransactionHistory> transactions = this.transactionRepository
                 .findBySavingsAccount_AccountNumberOrderByTimestampDesc(accountNumber)
                 .stream()
                 .filter(tx -> {
@@ -297,8 +300,8 @@ public class TransactionServiceImpl implements TransactionService {
                 .targetAccountNumber(targetAccountNumber)
                 .status("SUCCESS")
                 .build();
-        transactionRepository.save(tx);
-        createAuditLog(type.name(), account.getUser().getId().toString(),
+        this.transactionRepository.save(tx);
+        this.createAuditLog(type.name(), account.getUser().getId().toString(),
                 targetAccountNumber, "SUCCESS", description);
     }
 
@@ -315,8 +318,8 @@ public class TransactionServiceImpl implements TransactionService {
                 .targetAccountNumber(targetPhone)
                 .status("SUCCESS")
                 .build();
-        transactionRepository.save(tx);
-        createAuditLog(type.name(), wallet.getUser().getPhoneNumber(),
+        this.transactionRepository.save(tx);
+        this.createAuditLog(type.name(), wallet.getUser().getPhoneNumber(),
                 targetPhone, "SUCCESS", description);
     }
 
@@ -329,6 +332,6 @@ public class TransactionServiceImpl implements TransactionService {
                 .status(status)
                 .details(details)
                 .build();
-        auditLogRepository.save(log);
+        this.auditLogRepository.save(log);
     }
 }

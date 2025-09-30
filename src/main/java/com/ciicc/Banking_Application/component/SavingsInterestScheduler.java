@@ -27,8 +27,8 @@ public class SavingsInterestScheduler {
     /**
      * Apply interest to all savings accounts.
      *
-     * Testing: runs every 1 minute with 3.5% per day
-     * Production: replace with daily cron for annual interest (see commented block below)
+     * Testing: runs every 5 minute with 3.5% per day
+     * Production: replace with daily cron for annual interest
      */
     @Scheduled(fixedRate = 5 * 60 * 1000) // 1 minute interval for testing
     @Transactional
